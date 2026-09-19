@@ -1,22 +1,17 @@
 /* ══════════════════════════════════════════════
-   CAMC — Supabase Config
+   CAMC — Neon Serverless Config
    Configuración compartida entre todas las páginas
 ══════════════════════════════════════════════ */
 
-// Keys se leen de variables globales definidas en env.js
-// env.js NO se sube al repo (está en .gitignore)
-// En Vercel se configuran como Environment Variables
-const SUPABASE_URL = window.__ENV__?.SUPABASE_URL || '';
-const SUPABASE_ANON_KEY = window.__ENV__?.SUPABASE_ANON_KEY || '';
+import { neon } from 'https://cdn.jsdelivr.net/npm/@neondatabase/serverless@0.10.4/+esm';
 
-// Importar Supabase desde CDN
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+const DATABASE_URL = window.__ENV__?.DATABASE_URL || '';
 
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-  console.error('CAMC: Faltan las variables de entorno de Supabase. Revisá env.js o las variables de Vercel.');
+if (!DATABASE_URL) {
+  console.error('CAMC: Falta DATABASE_URL en env.js o variables de Vercel.');
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+export const sql = neon(DATABASE_URL);
 
 /* ── Helpers ── */
 

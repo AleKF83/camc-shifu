@@ -1,175 +1,157 @@
 /* ══════════════════════════════════════════════
-   CAMC — API Module
+   CAMC — API Module (Neon Serverless)
    Todas las operaciones de base de datos
 ══════════════════════════════════════════════ */
 
-import { supabase, todayISO } from './supabase-config.js';
+import { sql, todayISO } from './supabase-config.js';
 
 /* ── CONFIG ── */
 
 export async function getConfig() {
-  const { data, error } = await supabase
-    .from('config').select('*').eq('id', 1).single();
-  if (error) throw error;
-  return data;
+  const rows = await sql`SELECT * FROM config WHERE id = 1`;
+  return rows[0];
 }
 
 export async function updateConfig(updates) {
-  const { data, error } = await supabase
-    .from('config').update(updates).eq('id', 1).select().single();
-  if (error) throw error;
-  return data;
+  const { nombre_dojo, estilos, cuota, matricula, msg_whatsapp } = updates;
+  await sql`UPDATE config SET
+    nombre_dojo = ${nombre_dojo},
+    estilos = ${estilos},
+    cuota = ${cuota},
+    matricula = ${matricula},
+    msg_whatsapp = ${msg_whatsapp},
+    updated_at = now()
+    WHERE id = 1`;
 }
 
 /* ── ALUMNOS ── */
 
 export async function getAlumnos({ estado, estilo } = {}) {
-  let q = supabase.from('alumnos').select('*').order('apellido').order('nombre');
-  if (estado) q = q.eq('estado', estado);
-  if (estilo) q = q.contains('estilos', [estilo]);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data;
+  if (estado && estilo) {
+    return sql`SELECT * FROM alumnos WHERE estado = ${estado} AND ${estilo} = ANY(estilos) ORDER BY apellido, nombre`;
+  } else if (estado) {
+    return sql`SELECT * FROM alumnos WHERE estado = ${estado} ORDER BY apellido, nombre`;
+  } else if (estilo) {
+    return sql`SELECT * FROM alumnos WHERE ${estilo} = ANY(estilos) ORDER BY apellido, nombre`;
+  }
+  return sql`SELECT * FROM alumnos ORDER BY apellido, nombre`;
 }
 
 export async function getAlumno(id) {
-  const { data, error } = await supabase
-    .from('alumnos').select('*').eq('id', id).single();
-  if (error) throw error;
-  return data;
+  const rows = await sql`SELECT * FROM alumnos WHERE id = ${id}`;
+  return rows[0];
 }
 
 export async function createAlumno(alumno) {
-  const { data, error } = await supabase
-    .from('alumnos').insert(alumno).select().single();
-  if (error) throw error;
-  return data;
+  const { nombre, apellido, estilos, faja, telefono, email, estado } = alumno;
+  const rows = await sql`INSERT INTO alumnos (nombre, apellido, estilos, faja, telefono, email, estado)
+    VALUES (${nombre}, ${apellido}, ${estilos}, ${faja || 'Blanca'}, ${telefono || null}, ${email || null}, ${estado || 'activo'})
+    RETURNING *`;
+  return rows[0];
 }
 
 export async function updateAlumno(id, updates) {
-  const { data, error } = await supabase
-    .from('alumnos').update(updates).eq('id', id).select().single();
-  if (error) throw error;
-  return data;
+  const { nombre, apellido, estilos, faja, telefono, email, estado } = updates;
+  if (estado !== undefined && Object.keys(updates).length === 1) {
+    await sql`UPDATE alumnos SET estado = ${estado}, updated_at = now() WHERE id = ${id}`;
+    return;
+  }
+  await sql`UPDATE alumnos SET
+    nombre = COALESCE(${nombre}, nombre),
+    apellido = COALESCE(${apellido}, apellido),
+    estilos = COALESCE(${estilos}, estilos),
+    faja = COALESCE(${faja}, faja),
+    telefono = ${telefono ?? null},
+    email = ${email ?? null},
+    estado = COALESCE(${estado}, estado),
+    updated_at = now()
+    WHERE id = ${id}`;
 }
 
 export async function deleteAlumno(id) {
-  const { error } = await supabase.from('alumnos').delete().eq('id', id);
-  if (error) throw error;
-}
-
-export async function importAlumnos(rows) {
-  const { data, error } = await supabase.from('alumnos').insert(rows).select();
-  if (error) throw error;
-  return data;
+  await sql`DELETE FROM alumnos WHERE id = ${id}`;
 }
 
 /* ── ASISTENCIAS ── */
 
 export async function existeAsistencia(estilo, fecha) {
-  const { count, error } = await supabase
-    .from('asistencias')
-    .select('*', { count: 'exact', head: true })
-    .eq('estilo', estilo).eq('fecha', fecha);
-  if (error) throw error;
-  return count > 0;
+  const rows = await sql`SELECT COUNT(*)::int AS n FROM asistencias WHERE estilo = ${estilo} AND fecha = ${fecha}`;
+  return rows[0].n > 0;
 }
 
 export async function guardarAsistencia(registros) {
-  const { data, error } = await supabase
-    .from('asistencias')
-    .upsert(registros, { onConflict: 'alumno_id,fecha,estilo', ignoreDuplicates: false })
-    .select();
-  if (error) throw error;
-  return data;
+  for (const r of registros) {
+    await sql`INSERT INTO asistencias (alumno_id, fecha, estilo, presente)
+      VALUES (${r.alumno_id}, ${r.fecha}, ${r.estilo}, ${r.presente})
+      ON CONFLICT (alumno_id, fecha, estilo)
+      DO UPDATE SET presente = ${r.presente}`;
+  }
 }
 
 export async function getAsistencias({ mes, anio, estilo } = {}) {
-  let q = supabase
-    .from('asistencias')
-    .select('id, fecha, estilo, presente, alumno:alumnos(id, nombre, apellido)')
-    .order('fecha', { ascending: false });
-  if (estilo) q = q.eq('estilo', estilo);
-  if (mes && anio) {
-    const inicio = `${anio}-${String(mes).padStart(2,'0')}-01`;
-    const fin = `${anio}-${String(mes).padStart(2,'0')}-${new Date(anio, mes, 0).getDate()}`;
-    q = q.gte('fecha', inicio).lte('fecha', fin);
+  const m = mes || new Date().getMonth() + 1;
+  const a = anio || new Date().getFullYear();
+  const inicio = `${a}-${String(m).padStart(2,'0')}-01`;
+  const finDia = new Date(a, m, 0).getDate();
+  const fin = `${a}-${String(m).padStart(2,'0')}-${finDia}`;
+
+  if (estilo) {
+    return sql`SELECT asi.id, asi.fecha, asi.estilo, asi.presente,
+      al.id AS alumno_id, al.nombre, al.apellido
+      FROM asistencias asi JOIN alumnos al ON al.id = asi.alumno_id
+      WHERE asi.fecha BETWEEN ${inicio} AND ${fin} AND asi.estilo = ${estilo}
+      ORDER BY asi.fecha DESC`;
   }
-  const { data, error } = await q;
-  if (error) throw error;
-  return data;
+  return sql`SELECT asi.id, asi.fecha, asi.estilo, asi.presente,
+    al.id AS alumno_id, al.nombre, al.apellido
+    FROM asistencias asi JOIN alumnos al ON al.id = asi.alumno_id
+    WHERE asi.fecha BETWEEN ${inicio} AND ${fin}
+    ORDER BY asi.fecha DESC`;
 }
 
 export async function deleteAsistencia(id) {
-  const { error } = await supabase.from('asistencias').delete().eq('id', id);
-  if (error) throw error;
+  await sql`DELETE FROM asistencias WHERE id = ${id}`;
 }
 
 /* ── PAGOS ── */
 
 export async function registrarCuota({ alumno_id, mes, anio, monto, fecha_pago }) {
-  const { data, error } = await supabase
-    .from('pagos')
-    .upsert({
-      alumno_id, tipo: 'cuota', mes, anio, monto,
-      fecha_pago: fecha_pago || todayISO()
-    }, { onConflict: 'alumno_id,anio,mes' })
-    .select().single();
-  if (error) throw error;
-  return data;
+  await sql`INSERT INTO pagos (alumno_id, tipo, mes, anio, monto, fecha_pago)
+    VALUES (${alumno_id}, 'cuota', ${mes}, ${anio}, ${monto}, ${fecha_pago || todayISO()})
+    ON CONFLICT (alumno_id, anio, mes) WHERE tipo = 'cuota'
+    DO UPDATE SET monto = ${monto}, fecha_pago = ${fecha_pago || todayISO()}`;
 }
 
 export async function registrarMatricula({ alumno_id, anio, monto }) {
-  const { data, error } = await supabase
-    .from('pagos')
-    .upsert({
-      alumno_id, tipo: 'matricula', anio, monto,
-      fecha_pago: todayISO()
-    }, { onConflict: 'alumno_id,anio' })
-    .select().single();
-  if (error) throw error;
-  return data;
+  await sql`INSERT INTO pagos (alumno_id, tipo, anio, monto, fecha_pago)
+    VALUES (${alumno_id}, 'matricula', ${anio}, ${monto}, ${todayISO()})
+    ON CONFLICT (alumno_id, anio) WHERE tipo = 'matricula'
+    DO UPDATE SET monto = ${monto}`;
 }
 
 export async function getEstadoCuotaMes() {
-  const { data, error } = await supabase
-    .from('v_estado_cuota_mes').select('*').order('apellido');
-  if (error) throw error;
-  return data;
+  return sql`SELECT * FROM v_estado_cuota_mes ORDER BY apellido`;
 }
 
 export async function getHistorialPagos({ mes, anio, estilo } = {}) {
-  let q = supabase
-    .from('pagos')
-    .select('id, tipo, mes, anio, monto, fecha_pago, alumno:alumnos(id, nombre, apellido, estilos)')
-    .order('fecha_pago', { ascending: false });
-  if (anio) q = q.eq('anio', anio);
-  if (mes)  q = q.eq('mes', mes);
-  const { data, error } = await q;
-  if (error) throw error;
-  if (estilo) return data.filter(p => p.alumno?.estilos?.includes(estilo));
-  return data;
+  return sql`SELECT p.id, p.tipo, p.mes, p.anio, p.monto, p.fecha_pago,
+    a.id AS alumno_id, a.nombre, a.apellido, a.estilos
+    FROM pagos p JOIN alumnos a ON a.id = p.alumno_id
+    ORDER BY p.fecha_pago DESC LIMIT 200`;
 }
 
 export async function deletePago(id) {
-  const { error } = await supabase.from('pagos').delete().eq('id', id);
-  if (error) throw error;
+  await sql`DELETE FROM pagos WHERE id = ${id}`;
 }
 
 /* ── REPORTES ── */
 
 export async function getReporteAsistencia({ estilo } = {}) {
-  let q = supabase.from('v_asistencia_resumen').select('*').order('alumno');
-  if (estilo) q = q.eq('estilo', estilo);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data;
+  return sql`SELECT * FROM v_asistencia_resumen ORDER BY alumno`;
 }
 
 export async function getReporteIngresos() {
-  const { data, error } = await supabase.from('v_ingresos_mes').select('*');
-  if (error) throw error;
-  return data;
+  return sql`SELECT * FROM v_ingresos_mes`;
 }
 
 /* ── DASHBOARD ── */
@@ -179,34 +161,30 @@ export async function getDashboardKPIs() {
   const mesActual = new Date().getMonth() + 1;
   const anioActual = new Date().getFullYear();
 
-  const [alumnos, presentes, deudores, ingresos] = await Promise.all([
-    supabase.from('alumnos').select('*', { count: 'exact', head: true }).eq('estado', 'activo'),
-    supabase.from('asistencias').select('*', { count: 'exact', head: true }).eq('fecha', hoy).eq('presente', true),
-    supabase.from('v_estado_cuota_mes').select('*', { count: 'exact', head: true }).eq('estado_pago', 'debe'),
-    supabase.from('pagos').select('monto').eq('tipo', 'cuota').eq('mes', mesActual).eq('anio', anioActual)
+  const [activos, presentes, deudores, ingresos] = await Promise.all([
+    sql`SELECT COUNT(*)::int AS n FROM alumnos WHERE estado = 'activo'`,
+    sql`SELECT COUNT(*)::int AS n FROM asistencias WHERE fecha = ${hoy} AND presente = true`,
+    sql`SELECT COUNT(*)::int AS n FROM v_estado_cuota_mes WHERE estado_pago = 'debe'`,
+    sql`SELECT COALESCE(SUM(monto),0)::numeric AS total FROM pagos WHERE tipo = 'cuota' AND mes = ${mesActual} AND anio = ${anioActual}`
   ]);
 
   return {
-    alumnosActivos: alumnos.count || 0,
-    presentesHoy:   presentes.count || 0,
-    debenEsteMes:   deudores.count || 0,
-    ingresosMes:    (ingresos.data || []).reduce((s, p) => s + Number(p.monto), 0)
+    alumnosActivos: activos[0].n,
+    presentesHoy:   presentes[0].n,
+    debenEsteMes:   deudores[0].n,
+    ingresosMes:    Number(ingresos[0].total)
   };
 }
 
 /* ── AUTH ── */
 
 export async function verificarPassword(password) {
-  const { data, error } = await supabase
-    .from('admin_auth').select('password_hash').eq('id', 1).single();
-  if (error) throw error;
-  return data.password_hash === password;
+  const rows = await sql`SELECT password_hash FROM admin_auth WHERE id = 1`;
+  return rows[0]?.password_hash === password;
 }
 
 export async function cambiarPassword(actual, nueva) {
   const ok = await verificarPassword(actual);
   if (!ok) throw new Error('Contraseña actual incorrecta');
-  const { error } = await supabase
-    .from('admin_auth').update({ password_hash: nueva }).eq('id', 1);
-  if (error) throw error;
+  await sql`UPDATE admin_auth SET password_hash = ${nueva} WHERE id = 1`;
 }
