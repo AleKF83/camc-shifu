@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 
@@ -649,19 +650,47 @@
       } catch(e) { toast(e.message || 'Error', 'error'); }
     });
   
-    /* ── Export Excel (CSV) ── */
+    /* ── Export Excel (.xlsx) ── */
     document.getElementById('btn-export-xlsx').addEventListener('click', async () => {
       try {
-        const csv = await API.exportAlumnosCSV();
-        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `alumnos_camc_${todayISO()}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        toast('Archivo descargado');
-      } catch(e) { toast('Error exportando', 'error'); }
+        const alumnos = await API.getAlumnos();
+        const rows = alumnos.map((a, i) => ({
+          '#': i + 1,
+          'Apellido': a.apellido,
+          'Nombre': a.nombre,
+          'Estilos': (a.estilos || []).join(', '),
+          'Faja': a.faja || '',
+          'Teléfono': a.telefono || '',
+          'Email': a.email || '',
+          'Estado': a.estado
+        }));
+        const ws = XLSX.utils.json_to_sheet(rows);
+        // Column widths
+        ws['!cols'] = [
+          { wch: 4 }, { wch: 18 }, { wch: 16 }, { wch: 20 },
+          { wch: 10 }, { wch: 14 }, { wch: 24 }, { wch: 10 }
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Alumnos');
+
+        // Also export cuotas if available
+        try {
+          const cuotas = await API.getEstadoCuotaMes();
+          const cuotaRows = cuotas.map(c => ({
+            'Apellido': c.apellido,
+            'Nombre': c.nombre,
+            'Estado Cuota': c.estado_pago,
+            'Monto': c.monto ? Number(c.monto) : '',
+            'Fecha Pago': c.fecha_pago || ''
+          }));
+          const ws2 = XLSX.utils.json_to_sheet(cuotaRows);
+          ws2['!cols'] = [{ wch: 18 }, { wch: 16 }, { wch: 14 }, { wch: 10 }, { wch: 14 }];
+          XLSX.utils.book_append_sheet(wb, ws2, 'Cuotas del Mes');
+        } catch(e) { /* skip if fails */ }
+
+        XLSX.writeFile(wb, `CAMC_${todayISO()}.xlsx`);
+        toast('Excel descargado');
+      } catch(e) { toast('Error exportando', 'error'); console.error(e); }
     });
 
     /* ── Import CSV ── */
