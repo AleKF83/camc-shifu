@@ -1,5 +1,5 @@
 {
-  "buildCommand": "echo \"window.__ENV__={DATABASE_URL:'$DATABASE_URL'};\" > env.js",
+  "buildCommand": "node -e \"require('fs').writeFileSync('env.js','window.__ENV__={DATABASE_URL:'+JSON.stringify(process.env.DATABASE_URL||'')+'};')\"",
   "outputDirectory": ".",
   "rewrites": [
     { "source": "/admin.html",      "destination": "/app/admin.html" },
