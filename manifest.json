@@ -1,0 +1,12 @@
+{
+  "name": "C.A.M.C. — Centro de Artes Marciales Chinas",
+  "short_name": "CAMC",
+  "start_url": "/asistencia.html",
+  "display": "standalone",
+  "background_color": "#160605",
+  "theme_color": "#5C0E0E",
+  "icons": [
+    { "src": "/logo.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/logo.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

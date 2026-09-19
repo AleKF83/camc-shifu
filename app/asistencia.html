@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Asistencia · C.A.M.C.</title>
+  <link rel="manifest" href="../manifest.json">
+  <link rel="apple-touch-icon" href="../logo.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="C.A.M.C.">
+  <meta name="theme-color" content="#5C0E0E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/asistencia.html" class="brand">
+      CAMC
+      <small>Centro de Artes Marciales Chinas</small>
+    </a>
+    <div class="navbar-actions">
+      <a href="/admin.html">Admin</a>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="container" style="max-width:600px;">
+
+    <!-- Session config -->
+    <div class="card" style="margin-top:1rem;">
+      <h3 style="font-family:var(--font-display);color:var(--gold);font-size:1rem;margin-bottom:1rem;">
+        Marcar Asistencia
+      </h3>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;margin-bottom:1rem;">
+        <div class="form-group" style="margin:0">
+          <label for="sel-estilo">Estilo</label>
+          <select id="sel-estilo" class="form-control">
+            <option value="">-- Seleccioná --</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label for="sel-fecha">Fecha</label>
+          <input type="date" id="sel-fecha" class="form-control">
+        </div>
+      </div>
+
+      <div id="dup-warning" class="warning-banner hidden">
+        Ya existe asistencia para este estilo y fecha. Si guardás, se actualizarán los registros.
+      </div>
+
+      <!-- Search -->
+      <div class="search-input" style="margin-bottom:0.8rem;">
+        <input type="text" id="search" placeholder="Buscar alumno..." disabled>
+      </div>
+
+      <!-- Student list -->
+      <div id="student-list" class="student-list">
+        <div class="empty-state">
+          <p>Seleccioná un estilo para cargar los alumnos</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-bar" id="stats-bar">
+      <div class="stat"><span class="stat-value" id="st-total">0</span><div class="stat-label">Total</div></div>
+      <div class="stat"><span class="stat-value" id="st-presentes">0</span><div class="stat-label">Presentes</div></div>
+      <div class="stat"><span class="stat-value" id="st-ausentes">0</span><div class="stat-label">Ausentes</div></div>
+    </div>
+
+    <!-- Actions -->
+    <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+      <button class="btn btn-outline" id="btn-limpiar" disabled>Limpiar</button>
+      <button class="btn btn-outline" id="btn-todos" disabled>Todos</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-gold" id="btn-guardar" disabled>Guardar</button>
+    </div>
+  </div>
+
+  <!-- Confirm overlay -->
+  <div id="confirm-overlay" class="modal-overlay hidden">
+    <div class="modal" style="text-align:center;">
+      <h3>Confirmar asistencia</h3>
+      <p id="confirm-summary" style="font-size:0.85rem;margin-bottom:1.2rem;color:var(--text-dim);"></p>
+      <div class="modal-actions" style="justify-content:center;">
+        <button class="btn btn-outline" id="btn-cancel">Cancelar</button>
+        <button class="btn btn-gold" id="btn-confirm">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../env.js"></script>
+  <script type="module">
+    import { supabase, toast, todayISO } from '../js/supabase-config.js';
+    import { getConfig, getAlumnos, existeAsistencia, guardarAsistencia, getEstadoCuotaMes } from '../js/api.js';
+
+    /* ── State ── */
+    let alumnos = [];
+    let presentes = new Set();
+    let config = {};
+    let deudores = new Set();
+
+    /* ── DOM refs ── */
+    const selEstilo  = document.getElementById('sel-estilo');
+    const selFecha   = document.getElementById('sel-fecha');
+    const searchEl   = document.getElementById('search');
+    const listEl     = document.getElementById('student-list');
+    const dupWarn    = document.getElementById('dup-warning');
+    const btnGuardar = document.getElementById('btn-guardar');
+    const btnLimpiar = document.getElementById('btn-limpiar');
+    const btnTodos   = document.getElementById('btn-todos');
+    const confirmOv  = document.getElementById('confirm-overlay');
+
+    /* ── Init ── */
+    selFecha.value = todayISO();
+
+    async function init() {
+      try {
+        config = await getConfig();
+        // Llenar selector de estilos
+        config.estilos.forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = e; opt.textContent = e;
+          selEstilo.appendChild(opt);
+        });
+
+        // Cargar deudores del mes
+        try {
+          const cuotas = await getEstadoCuotaMes();
+          cuotas.filter(c => c.estado_pago === 'debe').forEach(c => deudores.add(c.alumno_id));
+        } catch(e) { /* vista puede no existir aún */ }
+      } catch(e) {
+        toast('Error cargando configuración', 'error');
+        console.error(e);
+      }
+    }
+
+    init();
+
+    /* ── Cargar alumnos al seleccionar estilo ── */
+    selEstilo.addEventListener('change', async () => {
+      const estilo = selEstilo.value;
+      if (!estilo) {
+        listEl.innerHTML = '<div class="empty-state"><p>Seleccioná un estilo</p></div>';
+        setButtonsEnabled(false);
+        return;
+      }
+      listEl.innerHTML = '<div class="spinner"></div>';
+      try {
+        alumnos = await getAlumnos({ estado: 'activo', estilo });
+        presentes.clear();
+        renderStudents(alumnos);
+        setButtonsEnabled(true);
+        searchEl.disabled = false;
+        checkDuplicate();
+      } catch(e) {
+        toast('Error cargando alumnos', 'error');
+        console.error(e);
+      }
+    });
+
+    selFecha.addEventListener('change', checkDuplicate);
+
+    async function checkDuplicate() {
+      const estilo = selEstilo.value;
+      const fecha = selFecha.value;
+      if (!estilo || !fecha) return;
+      try {
+        const existe = await existeAsistencia(estilo, fecha);
+        dupWarn.classList.toggle('hidden', !existe);
+      } catch(e) { /* silencioso */ }
+    }
+
+    /* ── Render students ── */
+    function renderStudents(list) {
+      if (!list.length) {
+        listEl.innerHTML = '<div class="empty-state"><p>No hay alumnos para este estilo</p></div>';
+        updateStats();
+        return;
+      }
+      listEl.innerHTML = list.map(a => {
+        const isPresent = presentes.has(a.id);
+        const isDeudor = deudores.has(a.id);
+        return `
+          <div class="student-card ${isPresent ? 'present' : ''}" data-id="${a.id}">
+            <div>
+              <div class="student-name">${a.apellido}, ${a.nombre}</div>
+              <div class="student-meta">
+                ${a.faja || ''}
+                ${isDeudor ? ' · <span style="color:var(--danger)">Debe cuota</span>' : ''}
+              </div>
+            </div>
+            <div class="check-icon">${isPresent ? '✓' : ''}</div>
+          </div>
+        `;
+      }).join('');
+
+      // Click handlers
+      listEl.querySelectorAll('.student-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.dataset.id;
+          if (presentes.has(id)) {
+            presentes.delete(id);
+            card.classList.remove('present');
+            card.querySelector('.check-icon').textContent = '';
+          } else {
+            presentes.add(id);
+            card.classList.add('present');
+            card.querySelector('.check-icon').textContent = '✓';
+          }
+          updateStats();
+        });
+      });
+      updateStats();
+    }
+
+    /* ── Search ── */
+    searchEl.addEventListener('input', () => {
+      const q = searchEl.value.toLowerCase().trim();
+      const filtered = alumnos.filter(a =>
+        `${a.apellido} ${a.nombre}`.toLowerCase().includes(q)
+      );
+      renderStudents(filtered);
+    });
+
+    /* ── Stats ── */
+    function updateStats() {
+      document.getElementById('st-total').textContent = alumnos.length;
+      document.getElementById('st-presentes').textContent = presentes.size;
+      document.getElementById('st-ausentes').textContent = alumnos.length - presentes.size;
+    }
+
+    function setButtonsEnabled(v) {
+      btnGuardar.disabled = !v;
+      btnLimpiar.disabled = !v;
+      btnTodos.disabled = !v;
+    }
+
+    /* ── Buttons ── */
+    btnLimpiar.addEventListener('click', () => {
+      presentes.clear();
+      renderStudents(alumnos);
+    });
+
+    btnTodos.addEventListener('click', () => {
+      alumnos.forEach(a => presentes.add(a.id));
+      renderStudents(alumnos);
+    });
+
+    btnGuardar.addEventListener('click', () => {
+      if (!presentes.size) {
+        toast('No marcaste ningún presente', 'warning');
+        return;
+      }
+      document.getElementById('confirm-summary').textContent =
+        `${presentes.size} presentes de ${alumnos.length} alumnos · ${selEstilo.value} · ${selFecha.value}`;
+      confirmOv.classList.remove('hidden');
+    });
+
+    document.getElementById('btn-cancel').addEventListener('click', () => {
+      confirmOv.classList.add('hidden');
+    });
+
+    document.getElementById('btn-confirm').addEventListener('click', async () => {
+      confirmOv.classList.add('hidden');
+      btnGuardar.disabled = true;
+      btnGuardar.textContent = 'Guardando...';
+
+      try {
+        const registros = alumnos.map(a => ({
+          alumno_id: a.id,
+          fecha: selFecha.value,
+          estilo: selEstilo.value,
+          presente: presentes.has(a.id)
+        }));
+        await guardarAsistencia(registros);
+        toast(`Asistencia guardada: ${presentes.size} presentes`);
+        // Reset
+        presentes.clear();
+        renderStudents(alumnos);
+      } catch(e) {
+        toast('Error guardando asistencia', 'error');
+        console.error(e);
+      } finally {
+        btnGuardar.disabled = false;
+        btnGuardar.textContent = 'Guardar';
+      }
+    });
+  </script>
+</body>
+</html>

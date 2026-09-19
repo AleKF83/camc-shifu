@@ -1,0 +1,7 @@
+env.js
+.DS_Store
+*.log
+node_modules/
+.netlify/
+.claude/
+*.xlsx

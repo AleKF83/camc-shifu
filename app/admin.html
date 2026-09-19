@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CAMC — Administración</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/styles.css">
+</head>
+<body>
+
+  <!-- Login overlay -->
+  <div id="login-overlay" class="login-overlay">
+    <div class="login-box">
+      <img src="../logo.png" alt="CAMC">
+      <h2>Administración</h2>
+      <p>Centro de Artes Marciales Chinas</p>
+      <input type="password" id="login-pass" placeholder="Contraseña" autofocus>
+      <button class="btn btn-gold" style="width:100%" id="btn-login">Ingresar</button>
+    </div>
+  </div>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/admin.html" class="brand">
+      CAMC
+      <small>Centro de Artes Marciales Chinas</small>
+    </a>
+    <div class="navbar-actions">
+      <a href="/asistencia.html">Asistencia</a>
+      <button id="btn-logout">Salir</button>
+    </div>
+  </nav>
+
+  <!-- Layout -->
+  <div class="admin-layout" id="admin-layout" style="display:none;">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <button class="sidebar-item active" data-section="inicio">Inicio</button>
+      <button class="sidebar-item" data-section="alumnos">Alumnos</button>
+      <button class="sidebar-item" data-section="asistencias">Asistencias</button>
+      <button class="sidebar-item" data-section="pagos">Pagos</button>
+      <button class="sidebar-item" data-section="reportes">Reportes</button>
+      <button class="sidebar-item" data-section="config">Config</button>
+    </aside>
+
+    <!-- Content -->
+    <main class="admin-content">
+
+      <!-- INICIO -->
+      <section id="sec-inicio">
+        <div class="kpi-grid">
+          <div class="kpi-card"><div class="kpi-value" id="kpi-activos">—</div><div class="kpi-label">Alumnos Activos</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-presentes">—</div><div class="kpi-label">Presentes Hoy</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-deben">—</div><div class="kpi-label">Deben Este Mes</div></div>
+          <div class="kpi-card"><div class="kpi-value" id="kpi-ingresos">—</div><div class="kpi-label">Ingresos del Mes</div></div>
+        </div>
+      </section>
+
+      <!-- ALUMNOS -->
+      <section id="sec-alumnos" style="display:none;">
+        <div class="toolbar">
+          <button class="btn btn-gold btn-sm" id="btn-nuevo-alumno">Nuevo</button>
+          <div class="spacer"></div>
+          <select class="form-control" style="width:auto" id="filtro-estilo-alumnos">
+            <option value="">Todos los estilos</option>
+          </select>
+          <div class="filter-group">
+            <button class="chip active" data-filter="todos">Todos</button>
+            <button class="chip" data-filter="activo">Activos</button>
+            <button class="chip" data-filter="inactivo">Inactivos</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Apellido</th><th>Nombre</th><th>Estilos</th><th>Faja</th><th>Tel</th><th>Estado</th><th></th></tr>
+            </thead>
+            <tbody id="tbody-alumnos"><tr><td colspan="8">Cargando...</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ASISTENCIAS -->
+      <section id="sec-asistencias" style="display:none;">
+        <div class="toolbar">
+          <select class="form-control" style="width:auto" id="filtro-mes-asist"></select>
+          <select class="form-control" style="width:auto" id="filtro-estilo-asist">
+            <option value="">Todos los estilos</option>
+          </select>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Fecha</th><th>Apellido</th><th>Nombre</th><th>Estilo</th><th>Presente</th><th></th></tr>
+            </thead>
+            <tbody id="tbody-asistencias"><tr><td colspan="6">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- PAGOS -->
+      <section id="sec-pagos" style="display:none;">
+        <div class="tabs">
+          <button class="tab active" data-pago-tab="estado">Estado del Mes</button>
+          <button class="tab" data-pago-tab="historial">Historial</button>
+        </div>
+        <div id="pago-estado">
+          <div class="toolbar">
+            <button class="btn btn-gold btn-sm" id="btn-nueva-cuota">Registrar Cuota</button>
+            <button class="btn btn-outline btn-sm" id="btn-nueva-matricula">Matrícula</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Alumno</th><th>Estado</th><th>Monto</th><th></th></tr></thead>
+              <tbody id="tbody-cuotas"><tr><td colspan="4">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="pago-historial" style="display:none;">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Fecha</th><th>Alumno</th><th>Mes</th><th>Tipo</th><th>Monto</th><th></th></tr></thead>
+              <tbody id="tbody-pagos-hist"><tr><td colspan="6">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- REPORTES -->
+      <section id="sec-reportes" style="display:none;">
+        <div class="tabs">
+          <button class="tab active" data-rep-tab="asistencia">Asistencia por Alumno</button>
+          <button class="tab" data-rep-tab="ingresos">Ingresos por Mes</button>
+        </div>
+        <div id="rep-asistencia">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Alumno</th><th>Estilo</th><th>Clases</th><th>Presentes</th><th>Ausentes</th><th>%</th></tr></thead>
+              <tbody id="tbody-rep-asist"><tr><td colspan="6">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+        <div id="rep-ingresos" style="display:none;">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Mes</th><th>Pagos</th><th>Total</th></tr></thead>
+              <tbody id="tbody-rep-ingresos"><tr><td colspan="3">Cargando…</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONFIG -->
+      <section id="sec-config" style="display:none;">
+        <div class="card" style="max-width:500px;">
+          <h3 style="font-family:var(--font-display);color:var(--gold);font-size:1rem;margin-bottom:1rem;">General</h3>
+          <div class="form-group">
+            <label>Nombre del Dojo</label>
+            <input type="text" class="form-control" id="cfg-nombre">
+          </div>
+          <div class="form-group">
+            <label>Estilos (uno por línea)</label>
+            <textarea class="form-control" id="cfg-estilos" rows="3"></textarea>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+            <div class="form-group">
+              <label>Cuota Mensual ($)</label>
+              <input type="number" class="form-control" id="cfg-cuota">
+            </div>
+            <div class="form-group">
+              <label>Matrícula Anual ($)</label>
+              <input type="number" class="form-control" id="cfg-matricula">
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Mensaje WhatsApp</label>
+            <textarea class="form-control" id="cfg-whatsapp" rows="3"></textarea>
+            <small style="color:var(--text-dim);font-size:0.7rem;">Variables: {nombre}, {mes}, {dojo}</small>
+          </div>
+          <button class="btn btn-gold" id="btn-guardar-config">Guardar</button>
+        </div>
+
+        <div class="card" style="max-width:500px;margin-top:1rem;">
+          <h3 style="font-family:var(--font-display);color:var(--gold);font-size:1rem;margin-bottom:1rem;">Contraseña</h3>
+          <div class="form-group"><label>Contraseña actual</label><input type="password" class="form-control" id="cfg-pass-actual"></div>
+          <div class="form-group"><label>Nueva contraseña</label><input type="password" class="form-control" id="cfg-pass-nueva"></div>
+          <button class="btn btn-outline" id="btn-cambiar-pass">Cambiar</button>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Modal: Nuevo Alumno -->
+  <div id="modal-alumno" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="modal-alumno-title">Nuevo Alumno</h3>
+      <input type="hidden" id="alumno-edit-id">
+      <div class="form-group"><label>Nombre *</label><input type="text" class="form-control" id="al-nombre"></div>
+      <div class="form-group"><label>Apellido *</label><input type="text" class="form-control" id="al-apellido"></div>
+      <div class="form-group"><label>Estilos *</label><div id="al-estilos-checks"></div></div>
+      <div class="form-group"><label>Faja</label><select class="form-control" id="al-faja"></select></div>
+      <div class="form-group"><label>Teléfono</label><input type="tel" class="form-control" id="al-tel"></div>
+      <div class="form-group"><label>Email</label><input type="email" class="form-control" id="al-email"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('modal-alumno').classList.add('hidden')">Cancelar</button>
+        <button class="btn btn-gold" id="btn-save-alumno">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Registrar Cuota -->
+  <div id="modal-cuota" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Registrar Cuota</h3>
+      <div class="form-group"><label>Alumno *</label><select class="form-control" id="cuota-alumno"></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.8rem;">
+        <div class="form-group"><label>Mes</label><select class="form-control" id="cuota-mes"></select></div>
+        <div class="form-group"><label>Año</label><input type="number" class="form-control" id="cuota-anio"></div>
+      </div>
+      <div class="form-group"><label>Monto ($) *</label><input type="number" class="form-control" id="cuota-monto"></div>
+      <div class="form-group"><label>Fecha de pago</label><input type="date" class="form-control" id="cuota-fecha"></div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" onclick="document.getElementById('modal-cuota').classList.add('hidden')">Cancelar</button>
+        <button class="btn btn-gold" id="btn-save-cuota">Registrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../env.js"></script>
+  <script type="module">
+    import { toast, MONTHS, todayISO, formatDate } from '../js/supabase-config.js';
+    import * as API from '../js/api.js';
+
+    /* ── Auth ── */
+    const AUTH_KEY = 'camc_auth';
+    const loginOverlay = document.getElementById('login-overlay');
+    const adminLayout  = document.getElementById('admin-layout');
+
+    if (sessionStorage.getItem(AUTH_KEY)) showAdmin();
+
+    document.getElementById('btn-login').addEventListener('click', doLogin);
+    document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+    async function doLogin() {
+      const pass = document.getElementById('login-pass').value;
+      try {
+        const ok = await API.verificarPassword(pass);
+        if (ok) { sessionStorage.setItem(AUTH_KEY, '1'); showAdmin(); }
+        else toast('Contraseña incorrecta', 'error');
+      } catch(e) { toast('Error de conexión', 'error'); }
+    }
+
+    document.getElementById('btn-logout').addEventListener('click', () => {
+      sessionStorage.removeItem(AUTH_KEY);
+      loginOverlay.classList.remove('hidden');
+      adminLayout.style.display = 'none';
+    });
+
+    function showAdmin() {
+      loginOverlay.classList.add('hidden');
+      adminLayout.style.display = '';
+      loadDashboard();
+    }
+
+    /* ── Navigation ── */
+    let config = {};
+    const sections = ['inicio','alumnos','asistencias','pagos','reportes','config'];
+
+    document.querySelectorAll('.sidebar-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.sidebar-item').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const sec = btn.dataset.section;
+        sections.forEach(s => {
+          document.getElementById('sec-' + s).style.display = s === sec ? '' : 'none';
+        });
+        if (sec === 'inicio') loadDashboard();
+        if (sec === 'alumnos') loadAlumnos();
+        if (sec === 'asistencias') loadAsistencias();
+        if (sec === 'pagos') loadPagos();
+        if (sec === 'reportes') loadReportes();
+        if (sec === 'config') loadConfig();
+      });
+    });
+
+    /* ── Dashboard ── */
+    async function loadDashboard() {
+      try {
+        config = await API.getConfig();
+        const kpis = await API.getDashboardKPIs();
+        document.getElementById('kpi-activos').textContent = kpis.alumnosActivos;
+        document.getElementById('kpi-presentes').textContent = kpis.presentesHoy;
+        document.getElementById('kpi-deben').textContent = kpis.debenEsteMes;
+        document.getElementById('kpi-ingresos').textContent = '$' + kpis.ingresosMes.toLocaleString('es-AR');
+      } catch(e) { console.error(e); }
+    }
+
+    /* ── Alumnos ── */
+    let allAlumnos = [];
+
+    async function loadAlumnos() {
+      if (!config.estilos) config = await API.getConfig();
+      // Populate estilo filter
+      const filtroEstilo = document.getElementById('filtro-estilo-alumnos');
+      if (filtroEstilo.options.length <= 1) {
+        config.estilos.forEach(e => {
+          const o = document.createElement('option'); o.value = e; o.textContent = e;
+          filtroEstilo.appendChild(o);
+        });
+      }
+      try {
+        allAlumnos = await API.getAlumnos();
+        renderAlumnos(allAlumnos);
+      } catch(e) { toast('Error cargando alumnos', 'error'); }
+    }
+
+    function renderAlumnos(list) {
+      const tbody = document.getElementById('tbody-alumnos');
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty-state">Sin alumnos</td></tr>'; return; }
+      tbody.innerHTML = list.map((a, i) => `
+        <tr>
+          <td>${i+1}</td>
+          <td>${a.apellido}</td>
+          <td>${a.nombre}</td>
+          <td>${(a.estilos||[]).join(', ')}</td>
+          <td>${a.faja || '—'}</td>
+          <td>${a.telefono || '—'}</td>
+          <td><span class="badge ${a.estado === 'activo' ? 'badge-success' : 'badge-danger'}">${a.estado}</span></td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="window._editAlumno('${a.id}')">Editar</button>
+            <button class="btn btn-danger btn-sm" onclick="window._toggleAlumno('${a.id}','${a.estado}')">
+              ${a.estado === 'activo' ? 'Desactivar' : 'Activar'}
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    // Filters
+    document.querySelectorAll('[data-filter]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('[data-filter]').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        const f = chip.dataset.filter;
+        const filtered = f === 'todos' ? allAlumnos : allAlumnos.filter(a => a.estado === f);
+        renderAlumnos(filtered);
+      });
+    });
+
+    document.getElementById('filtro-estilo-alumnos').addEventListener('change', async (e) => {
+      const estilo = e.target.value;
+      allAlumnos = await API.getAlumnos(estilo ? { estilo } : {});
+      renderAlumnos(allAlumnos);
+    });
+
+    // New alumno
+    document.getElementById('btn-nuevo-alumno').addEventListener('click', () => {
+      document.getElementById('modal-alumno-title').textContent = 'Nuevo Alumno';
+      document.getElementById('alumno-edit-id').value = '';
+      document.getElementById('al-nombre').value = '';
+      document.getElementById('al-apellido').value = '';
+      document.getElementById('al-tel').value = '';
+      document.getElementById('al-email').value = '';
+      populateAlumnoForm();
+      document.getElementById('modal-alumno').classList.remove('hidden');
+    });
+
+    function populateAlumnoForm() {
+      // Estilos checkboxes
+      const container = document.getElementById('al-estilos-checks');
+      container.innerHTML = config.estilos.map(e =>
+        `<label style="display:inline-flex;gap:0.3rem;margin-right:1rem;font-size:0.85rem;cursor:pointer;">
+          <input type="checkbox" value="${e}" class="al-estilo-cb"> ${e}
+        </label>`
+      ).join('');
+      // Fajas
+      const fajaSelect = document.getElementById('al-faja');
+      if (fajaSelect.options.length <= 1) {
+        fajaSelect.innerHTML = '<option value="">—</option>';
+        config.fajas.forEach(f => {
+          const o = document.createElement('option'); o.value = f; o.textContent = f;
+          fajaSelect.appendChild(o);
+        });
+      }
+    }
+
+    document.getElementById('btn-save-alumno').addEventListener('click', async () => {
+      const editId = document.getElementById('alumno-edit-id').value;
+      const estilos = [...document.querySelectorAll('.al-estilo-cb:checked')].map(c => c.value);
+      const data = {
+        nombre: document.getElementById('al-nombre').value.trim(),
+        apellido: document.getElementById('al-apellido').value.trim(),
+        estilos,
+        faja: document.getElementById('al-faja').value,
+        telefono: document.getElementById('al-tel').value.trim(),
+        email: document.getElementById('al-email').value.trim(),
+      };
+      if (!data.nombre || !data.apellido || !estilos.length) {
+        toast('Completá nombre, apellido y al menos un estilo', 'warning');
+        return;
+      }
+      try {
+        if (editId) await API.updateAlumno(editId, data);
+        else await API.createAlumno({ ...data, estado: 'activo' });
+        document.getElementById('modal-alumno').classList.add('hidden');
+        toast(editId ? 'Alumno actualizado' : 'Alumno creado');
+        loadAlumnos();
+      } catch(e) { toast('Error guardando alumno', 'error'); console.error(e); }
+    });
+
+    window._editAlumno = async (id) => {
+      const a = await API.getAlumno(id);
+      document.getElementById('modal-alumno-title').textContent = 'Editar Alumno';
+      document.getElementById('alumno-edit-id').value = id;
+      document.getElementById('al-nombre').value = a.nombre;
+      document.getElementById('al-apellido').value = a.apellido;
+      document.getElementById('al-tel').value = a.telefono || '';
+      document.getElementById('al-email').value = a.email || '';
+      populateAlumnoForm();
+      document.querySelectorAll('.al-estilo-cb').forEach(cb => {
+        cb.checked = a.estilos?.includes(cb.value);
+      });
+      document.getElementById('al-faja').value = a.faja || '';
+      document.getElementById('modal-alumno').classList.remove('hidden');
+    };
+
+    window._toggleAlumno = async (id, estado) => {
+      const nuevo = estado === 'activo' ? 'inactivo' : 'activo';
+      if (!confirm(`¿${nuevo === 'inactivo' ? 'Desactivar' : 'Activar'} este alumno?`)) return;
+      await API.updateAlumno(id, { estado: nuevo });
+      toast(`Alumno ${nuevo}`);
+      loadAlumnos();
+    };
+
+    /* ── Asistencias ── */
+    async function loadAsistencias() {
+      const mes = new Date().getMonth() + 1;
+      const anio = new Date().getFullYear();
+      try {
+        const data = await API.getAsistencias({ mes, anio });
+        const tbody = document.getElementById('tbody-asistencias');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="6" class="empty-state">Sin registros</td></tr>'; return; }
+        tbody.innerHTML = data.map(r => `
+          <tr>
+            <td>${formatDate(r.fecha)}</td>
+            <td>${r.alumno?.apellido || '—'}</td>
+            <td>${r.alumno?.nombre || '—'}</td>
+            <td>${r.estilo}</td>
+            <td><span class="badge ${r.presente ? 'badge-success' : 'badge-danger'}">${r.presente ? 'Sí' : 'No'}</span></td>
+            <td><button class="btn btn-danger btn-sm" onclick="window._delAsist('${r.id}')">×</button></td>
+          </tr>
+        `).join('');
+      } catch(e) { toast('Error cargando asistencias', 'error'); }
+    }
+
+    window._delAsist = async (id) => {
+      if (!confirm('¿Eliminar este registro?')) return;
+      await API.deleteAsistencia(id);
+      toast('Registro eliminado');
+      loadAsistencias();
+    };
+
+    /* ── Pagos ── */
+    document.querySelectorAll('[data-pago-tab]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('[data-pago-tab]').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const v = tab.dataset.pagoTab;
+        document.getElementById('pago-estado').style.display = v === 'estado' ? '' : 'none';
+        document.getElementById('pago-historial').style.display = v === 'historial' ? '' : 'none';
+        if (v === 'historial') loadHistorialPagos();
+      });
+    });
+
+    async function loadPagos() {
+      try {
+        const data = await API.getEstadoCuotaMes();
+        const tbody = document.getElementById('tbody-cuotas');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="4">Sin datos</td></tr>'; return; }
+        tbody.innerHTML = data.map(r => `
+          <tr>
+            <td>${r.apellido}, ${r.nombre}</td>
+            <td><span class="badge ${r.estado_pago === 'pagado' ? 'badge-success' : 'badge-danger'}">${r.estado_pago}</span></td>
+            <td>${r.monto ? '$' + Number(r.monto).toLocaleString('es-AR') : '—'}</td>
+            <td>${r.estado_pago === 'debe' ?
+              `<button class="btn btn-whatsapp btn-sm" onclick="window._sendWA('${r.nombre}')">WA</button>` : ''
+            }</td>
+          </tr>
+        `).join('');
+      } catch(e) { toast('Error cargando pagos', 'error'); }
+    }
+
+    async function loadHistorialPagos() {
+      try {
+        const data = await API.getHistorialPagos({});
+        const tbody = document.getElementById('tbody-pagos-hist');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="6">Sin registros</td></tr>'; return; }
+        tbody.innerHTML = data.map(r => `
+          <tr>
+            <td>${formatDate(r.fecha_pago)}</td>
+            <td>${r.alumno?.apellido}, ${r.alumno?.nombre}</td>
+            <td>${r.mes ? MONTHS[r.mes - 1] : '—'}</td>
+            <td><span class="badge badge-gold">${r.tipo}</span></td>
+            <td>$${Number(r.monto).toLocaleString('es-AR')}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="window._delPago('${r.id}')">×</button></td>
+          </tr>
+        `).join('');
+      } catch(e) { toast('Error', 'error'); }
+    }
+
+    window._delPago = async (id) => {
+      if (!confirm('¿Eliminar este pago?')) return;
+      await API.deletePago(id); toast('Pago eliminado'); loadPagos();
+    };
+
+    window._sendWA = (nombre) => {
+      const msg = (config.msg_whatsapp || 'Hola {nombre}, tu cuota de {mes} está pendiente.')
+        .replace('{nombre}', nombre)
+        .replace('{mes}', MONTHS[new Date().getMonth()])
+        .replace('{dojo}', config.nombre_dojo || 'CAMC');
+      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+    };
+
+    // Registrar cuota
+    document.getElementById('btn-nueva-cuota').addEventListener('click', async () => {
+      const alumnos = await API.getAlumnos({ estado: 'activo' });
+      const sel = document.getElementById('cuota-alumno');
+      sel.innerHTML = alumnos.map(a => `<option value="${a.id}">${a.apellido}, ${a.nombre}</option>`).join('');
+      const mesSel = document.getElementById('cuota-mes');
+      mesSel.innerHTML = MONTHS.map((m, i) => `<option value="${i+1}" ${i === new Date().getMonth() ? 'selected' : ''}>${m}</option>`).join('');
+      document.getElementById('cuota-anio').value = new Date().getFullYear();
+      document.getElementById('cuota-monto').value = config.cuota || '';
+      document.getElementById('cuota-fecha').value = todayISO();
+      document.getElementById('modal-cuota').classList.remove('hidden');
+    });
+
+    document.getElementById('btn-save-cuota').addEventListener('click', async () => {
+      try {
+        await API.registrarCuota({
+          alumno_id: document.getElementById('cuota-alumno').value,
+          mes: parseInt(document.getElementById('cuota-mes').value),
+          anio: parseInt(document.getElementById('cuota-anio').value),
+          monto: parseFloat(document.getElementById('cuota-monto').value),
+          fecha_pago: document.getElementById('cuota-fecha').value,
+        });
+        document.getElementById('modal-cuota').classList.add('hidden');
+        toast('Cuota registrada');
+        loadPagos();
+      } catch(e) { toast('Error registrando cuota', 'error'); console.error(e); }
+    });
+
+    /* ── Reportes ── */
+    document.querySelectorAll('[data-rep-tab]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('[data-rep-tab]').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        const v = tab.dataset.repTab;
+        document.getElementById('rep-asistencia').style.display = v === 'asistencia' ? '' : 'none';
+        document.getElementById('rep-ingresos').style.display = v === 'ingresos' ? '' : 'none';
+        if (v === 'ingresos') loadReporteIngresos();
+      });
+    });
+
+    async function loadReportes() {
+      try {
+        const data = await API.getReporteAsistencia({});
+        const tbody = document.getElementById('tbody-rep-asist');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="6">Sin datos</td></tr>'; return; }
+        tbody.innerHTML = data.map(r => `
+          <tr>
+            <td>${r.alumno}</td>
+            <td>${r.estilo}</td>
+            <td>${r.clases}</td>
+            <td>${r.presentes}</td>
+            <td>${r.ausentes}</td>
+            <td><span class="badge ${r.porcentaje >= 70 ? 'badge-success' : r.porcentaje >= 40 ? 'badge-warning' : 'badge-danger'}">${r.porcentaje}%</span></td>
+          </tr>
+        `).join('');
+      } catch(e) { toast('Error cargando reportes', 'error'); }
+    }
+
+    async function loadReporteIngresos() {
+      try {
+        const data = await API.getReporteIngresos();
+        const tbody = document.getElementById('tbody-rep-ingresos');
+        if (!data.length) { tbody.innerHTML = '<tr><td colspan="3">Sin datos</td></tr>'; return; }
+        tbody.innerHTML = data.map(r =>
+          `<tr><td>${MONTHS[r.mes-1]} ${r.anio}</td><td>${r.cantidad_pagos}</td><td>$${Number(r.total).toLocaleString('es-AR')}</td></tr>`
+        ).join('');
+      } catch(e) { toast('Error', 'error'); }
+    }
+
+    /* ── Config ── */
+    async function loadConfig() {
+      config = await API.getConfig();
+      document.getElementById('cfg-nombre').value = config.nombre_dojo;
+      document.getElementById('cfg-estilos').value = config.estilos.join('\n');
+      document.getElementById('cfg-cuota').value = config.cuota;
+      document.getElementById('cfg-matricula').value = config.matricula;
+      document.getElementById('cfg-whatsapp').value = config.msg_whatsapp || '';
+    }
+
+    document.getElementById('btn-guardar-config').addEventListener('click', async () => {
+      try {
+        await API.updateConfig({
+          nombre_dojo: document.getElementById('cfg-nombre').value,
+          estilos: document.getElementById('cfg-estilos').value.split('\n').map(s => s.trim()).filter(Boolean),
+          cuota: parseFloat(document.getElementById('cfg-cuota').value) || 0,
+          matricula: parseFloat(document.getElementById('cfg-matricula').value) || 0,
+          msg_whatsapp: document.getElementById('cfg-whatsapp').value,
+        });
+        toast('Configuración guardada');
+      } catch(e) { toast('Error guardando', 'error'); }
+    });
+
+    document.getElementById('btn-cambiar-pass').addEventListener('click', async () => {
+      const actual = document.getElementById('cfg-pass-actual').value;
+      const nueva = document.getElementById('cfg-pass-nueva').value;
+      if (!actual || !nueva) { toast('Completá ambos campos', 'warning'); return; }
+      try {
+        await API.cambiarPassword(actual, nueva);
+        toast('Contraseña cambiada');
+        document.getElementById('cfg-pass-actual').value = '';
+        document.getElementById('cfg-pass-nueva').value = '';
+      } catch(e) { toast(e.message || 'Error', 'error'); }
+    });
+  </script>
+</body>
+</html>
