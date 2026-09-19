@@ -1,7 +1,8 @@
 {
+  "buildCommand": "echo \"window.__ENV__={DATABASE_URL:'$DATABASE_URL'};\" > env.js",
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/admin.html",      "destination": "/app/admin.html" },
-    { "source": "/asistencia.html", "destination": "/app/asistencia.html" },
-    { "source": "/env.js",          "destination": "/api/env" }
+    { "source": "/asistencia.html", "destination": "/app/asistencia.html" }
   ]
 }
