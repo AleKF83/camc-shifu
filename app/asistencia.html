@@ -71,8 +71,8 @@
     <!-- Stats -->
     <div class="stats-bar" id="stats-bar">
       <div class="stat"><span class="stat-value" id="st-total">0</span><div class="stat-label">Total</div></div>
-      <div class="stat"><span class="stat-value" id="st-presentes">0</span><div class="stat-label">Presentes</div></div>
-      <div class="stat"><span class="stat-value" id="st-ausentes">0</span><div class="stat-label">Ausentes</div></div>
+      <div class="stat stat-presentes"><span class="stat-value" id="st-presentes">0</span><div class="stat-label">Presentes</div></div>
+      <div class="stat stat-ausentes"><span class="stat-value" id="st-ausentes">0</span><div class="stat-label">Ausentes</div></div>
     </div>
 
     <!-- Actions -->
@@ -188,16 +188,17 @@
       listEl.innerHTML = list.map(a => {
         const isPresent = presentes.has(a.id);
         const isDeudor = deudores.has(a.id);
+        const fajaClass = a.faja ? 'faja-' + a.faja.toLowerCase() : '';
         return `
           <div class="student-card ${isPresent ? 'present' : ''}" data-id="${a.id}">
             <div>
               <div class="student-name">${a.apellido}, ${a.nombre}</div>
               <div class="student-meta">
-                ${a.faja || ''}
+                <span class="${fajaClass}">${a.faja || ''}</span>
                 ${isDeudor ? ' · <span style="color:var(--danger)">Debe cuota</span>' : ''}
               </div>
             </div>
-            <div class="check-icon">${isPresent ? '✓' : ''}</div>
+            <div class="check-icon">${isPresent ? '✓' : '✗'}</div>
           </div>
         `;
       }).join('');

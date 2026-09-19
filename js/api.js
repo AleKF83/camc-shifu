@@ -188,3 +188,38 @@ export async function cambiarPassword(actual, nueva) {
   if (!ok) throw new Error('Contraseña actual incorrecta');
   await sql`UPDATE admin_auth SET password_hash = ${nueva} WHERE id = 1`;
 }
+
+/* ── HISTORIAL FAJAS ── */
+
+export async function registrarCambioFaja({ alumno_id, faja_anterior, faja_nueva }) {
+  await sql`INSERT INTO historial_fajas (alumno_id, faja_anterior, faja_nueva)
+    VALUES (${alumno_id}, ${faja_anterior}, ${faja_nueva})`;
+}
+
+export async function getHistorialFajas(alumno_id) {
+  return sql`SELECT * FROM historial_fajas WHERE alumno_id = ${alumno_id} ORDER BY fecha DESC`;
+}
+
+/* ── EXPORT HELPERS ── */
+
+export async function exportAlumnosCSV() {
+  const alumnos = await sql`SELECT nombre, apellido, estilos, faja, telefono, email, estado FROM alumnos ORDER BY apellido, nombre`;
+  let csv = 'Nombre,Apellido,Estilos,Faja,Telefono,Email,Estado\n';
+  for (const a of alumnos) {
+    csv += `${a.nombre},${a.apellido},"${(a.estilos||[]).join(', ')}",${a.faja||''},${a.telefono||''},${a.email||''},${a.estado}\n`;
+  }
+  return csv;
+}
+
+export async function importAlumnosCSV(rows) {
+  let inserted = 0, skipped = 0;
+  for (const r of rows) {
+    try {
+      const estilos = r.Estilos ? r.Estilos.split(',').map(s => s.trim()) : [];
+      await sql`INSERT INTO alumnos (nombre, apellido, estilos, faja, telefono, email, estado)
+        VALUES (${r.Nombre}, ${r.Apellido}, ${estilos}, ${r.Faja || 'Blanca'}, ${r.Telefono || null}, ${r.Email || null}, ${r.Estado || 'activo'})`;
+      inserted++;
+    } catch(e) { skipped++; }
+  }
+  return { inserted, skipped };
+}

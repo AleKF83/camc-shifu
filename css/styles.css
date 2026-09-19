@@ -652,3 +652,66 @@ select.form-control { cursor: pointer; }
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover { background: var(--gold-dim); }
+
+/* ══ v3.7 Improvements ══ */
+
+/* Better stats colors */
+.stat-presentes .stat-value { color: var(--success); }
+.stat-ausentes .stat-value { color: var(--danger); }
+
+/* Better toast on mobile */
+@media (max-width: 768px) {
+  .toast {
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    max-width: none;
+    text-align: center;
+    font-size: 0.9rem;
+    padding: 1rem;
+  }
+}
+
+/* Search icon */
+.search-input { position: relative; }
+.search-input::before {
+  content: '🔍';
+  position: absolute;
+  left: 0.7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.8rem;
+  pointer-events: none;
+  z-index: 1;
+}
+.search-input input { padding-left: 2.2rem !important; }
+
+/* Student card - no text cutoff */
+.student-card .student-name {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* WhatsApp btn in table */
+.btn-whatsapp { font-size: 0.72rem; padding: 0.25rem 0.6rem; }
+
+/* Export toolbar */
+.export-group { display: flex; gap: 0.3rem; }
+
+/* Absent visual */
+.student-card:not(.present) {
+  opacity: 0.55;
+}
+.student-card:not(.present) .check-icon {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Faja badge colors */
+.faja-blanca   { color: #fff; }
+.faja-amarilla { color: #F1C40F; }
+.faja-naranja  { color: #E67E22; }
+.faja-verde    { color: #27AE60; }
+.faja-azul     { color: #3498DB; }
+.faja-roja     { color: #E74C3C; }
+.faja-negra    { color: #ECF0F1; }

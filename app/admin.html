@@ -64,6 +64,11 @@
       <section id="sec-alumnos" style="display:none;">
         <div class="toolbar">
           <button class="btn btn-gold btn-sm" id="btn-nuevo-alumno">Nuevo</button>
+          <div class="export-group">
+            <button class="btn btn-outline btn-sm" id="btn-export-xlsx">Excel</button>
+            <button class="btn btn-outline btn-sm" id="btn-import-csv">Importar CSV</button>
+            <input type="file" id="csv-file-input" accept=".csv" style="display:none">
+          </div>
           <div class="spacer"></div>
           <select class="form-control" style="width:auto" id="filtro-estilo-alumnos">
             <option value="">Todos los estilos</option>
@@ -235,6 +240,11 @@
   <script type="module">
     import { toast, MONTHS, todayISO, formatDate } from '/js/supabase-config.js';
     import * as API from '/js/api.js';
+    // API includes: getConfig, updateConfig, getAlumnos, getAlumno, createAlumno, updateAlumno,
+    // deleteAlumno, getAsistencias, deleteAsistencia, registrarCuota, registrarMatricula,
+    // getEstadoCuotaMes, getHistorialPagos, deletePago, getReporteAsistencia, getReporteIngresos,
+    // getDashboardKPIs, verificarPassword, cambiarPassword, registrarCambioFaja, getHistorialFajas,
+    // exportAlumnosCSV, importAlumnosCSV
 
     /* ── Auth ── */
     const AUTH_KEY = 'camc_auth';
@@ -405,7 +415,14 @@
         return;
       }
       try {
-        if (editId) await API.updateAlumno(editId, data);
+        if (editId) {
+          // Track faja change
+          const old = await API.getAlumno(editId);
+          if (old.faja && data.faja && old.faja !== data.faja) {
+            await API.registrarCambioFaja({ alumno_id: editId, faja_anterior: old.faja, faja_nueva: data.faja });
+          }
+          await API.updateAlumno(editId, data);
+        }
         else await API.createAlumno({ ...data, estado: 'activo' });
         document.getElementById('modal-alumno').classList.add('hidden');
         toast(editId ? 'Alumno actualizado' : 'Alumno creado');
@@ -488,7 +505,7 @@
             <td><span class="badge ${r.estado_pago === 'pagado' ? 'badge-success' : 'badge-danger'}">${r.estado_pago}</span></td>
             <td>${r.monto ? '$' + Number(r.monto).toLocaleString('es-AR') : '—'}</td>
             <td>${r.estado_pago === 'debe' ?
-              `<button class="btn btn-whatsapp btn-sm" onclick="window._sendWA('${r.nombre}')">WA</button>` : ''
+              `<button class="btn btn-whatsapp btn-sm" onclick="window._sendWA('${r.nombre}','${r.telefono||''}')">WA</button>` : ''
             }</td>
           </tr>
         `).join('');
@@ -518,12 +535,14 @@
       await API.deletePago(id); toast('Pago eliminado'); loadPagos();
     };
 
-    window._sendWA = (nombre) => {
+    window._sendWA = (nombre, telefono) => {
       const msg = (config.msg_whatsapp || 'Hola {nombre}, tu cuota de {mes} está pendiente.')
         .replace('{nombre}', nombre)
         .replace('{mes}', MONTHS[new Date().getMonth()])
         .replace('{dojo}', config.nombre_dojo || 'CAMC');
-      window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
+      const phone = telefono ? telefono.replace(/\D/g, '') : '';
+      const waUrl = phone ? `https://wa.me/54${phone}?text=${encodeURIComponent(msg)}` : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(waUrl, '_blank');
     };
 
     // Registrar cuota
@@ -630,6 +649,47 @@
       } catch(e) { toast(e.message || 'Error', 'error'); }
     });
   
+    /* ── Export Excel (CSV) ── */
+    document.getElementById('btn-export-xlsx').addEventListener('click', async () => {
+      try {
+        const csv = await API.exportAlumnosCSV();
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `alumnos_camc_${todayISO()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('Archivo descargado');
+      } catch(e) { toast('Error exportando', 'error'); }
+    });
+
+    /* ── Import CSV ── */
+    document.getElementById('btn-import-csv').addEventListener('click', () => {
+      document.getElementById('csv-file-input').click();
+    });
+    document.getElementById('csv-file-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const text = await file.text();
+      const lines = text.split('\n').filter(l => l.trim());
+      if (lines.length < 2) { toast('CSV vacío', 'warning'); return; }
+      const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+      const rows = lines.slice(1).map(line => {
+        const vals = line.split(',').map(v => v.trim().replace(/"/g, ''));
+        const obj = {};
+        headers.forEach((h, i) => obj[h] = vals[i] || '');
+        return obj;
+      });
+      if (!confirm(`¿Importar ${rows.length} alumnos?`)) return;
+      try {
+        const result = await API.importAlumnosCSV(rows);
+        toast(`${result.inserted} importados, ${result.skipped} omitidos`);
+        loadAlumnos();
+      } catch(e) { toast('Error importando', 'error'); }
+      e.target.value = '';
+    });
+
     /* ── Theme toggle ── */
     const themeBtn = document.getElementById('btn-theme');
     const savedTheme = localStorage.getItem('camc-theme') || 'dark';
