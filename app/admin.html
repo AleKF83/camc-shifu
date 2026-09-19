@@ -7,14 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../css/styles.css">
+  <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
 
   <!-- Login overlay -->
   <div id="login-overlay" class="login-overlay">
     <div class="login-box">
-      <img src="../logo.png" alt="CAMC">
+      <img src="/logo.png" alt="CAMC">
       <h2>Administración</h2>
       <p>Centro de Artes Marciales Chinas</p>
       <input type="password" id="login-pass" placeholder="Contraseña" autofocus>
@@ -230,10 +230,10 @@
     </div>
   </div>
 
-  <script src="../env.js"></script>
+  <script src="/env.js"></script>
   <script type="module">
-    import { toast, MONTHS, todayISO, formatDate } from '../js/supabase-config.js';
-    import * as API from '../js/api.js';
+    import { toast, MONTHS, todayISO, formatDate } from '/js/supabase-config.js';
+    import * as API from '/js/api.js';
 
     /* ── Auth ── */
     const AUTH_KEY = 'camc_auth';
