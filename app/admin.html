@@ -29,6 +29,7 @@
       <small>Centro de Artes Marciales Chinas</small>
     </a>
     <div class="navbar-actions">
+      <button id="btn-theme" title="Cambiar tema">☀️</button>
       <a href="/asistencia.html">Asistencia</a>
       <button id="btn-logout">Salir</button>
     </div>
@@ -628,6 +629,20 @@
         document.getElementById('cfg-pass-nueva').value = '';
       } catch(e) { toast(e.message || 'Error', 'error'); }
     });
+  
+    /* ── Theme toggle ── */
+    const themeBtn = document.getElementById('btn-theme');
+    const savedTheme = localStorage.getItem('camc-theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    themeBtn.textContent = savedTheme === 'dark' ? '☀️' : '🌙';
+    themeBtn.addEventListener('click', () => {
+      const current = document.documentElement.getAttribute('data-theme') || 'dark';
+      const next = current === 'dark' ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      localStorage.setItem('camc-theme', next);
+      themeBtn.textContent = next === 'dark' ? '☀️' : '🌙';
+    });
+
   </script>
 </body>
 </html>
