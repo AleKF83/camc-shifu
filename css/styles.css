@@ -715,3 +715,125 @@ select.form-control { cursor: pointer; }
 .faja-azul     { color: #3498DB; }
 .faja-roja     { color: #E74C3C; }
 .faja-negra    { color: #ECF0F1; }
+
+/* ══ v3.9 Layout & Polish ══ */
+
+/* Fix mobile sidebar gap */
+@media (max-width: 768px) {
+  .sidebar {
+    padding: 0;
+    gap: 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--gold-faint);
+  }
+  .sidebar-item {
+    padding: 0.7rem 0.9rem;
+    font-size: 0.75rem;
+  }
+  .admin-content {
+    padding: 1rem;
+  }
+  .admin-layout {
+    min-height: auto;
+  }
+}
+
+/* KPI semantic colors */
+.kpi-card[data-kpi="activos"] .kpi-value { color: var(--gold); }
+.kpi-card[data-kpi="presentes"] .kpi-value { color: var(--success); }
+.kpi-card[data-kpi="deben"] .kpi-value { color: var(--danger); }
+.kpi-card[data-kpi="ingresos"] .kpi-value { color: var(--success); }
+
+/* KPI cards better spacing */
+.kpi-card {
+  padding: 1.4rem 1rem;
+  position: relative;
+  overflow: hidden;
+}
+.kpi-card .kpi-value {
+  font-size: 2rem;
+  line-height: 1;
+}
+.kpi-card .kpi-label {
+  margin-top: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* KPI zero state */
+.kpi-card .kpi-value:empty::after,
+.kpi-card .kpi-value[data-zero="true"] {
+  opacity: 0.4;
+}
+
+/* Theme toggle button styling */
+#btn-theme {
+  font-size: 1.1rem;
+  padding: 0.3rem 0.5rem;
+  line-height: 1;
+  border-radius: 50%;
+  border: 1px solid var(--gold-faint);
+  background: var(--gold-faint);
+  cursor: pointer;
+}
+#btn-theme:hover {
+  background: var(--gold);
+}
+
+/* Navbar fix - prevent text overlap */
+.navbar {
+  gap: 0.5rem;
+  flex-wrap: nowrap;
+}
+.navbar .brand small {
+  display: none;
+}
+@media (min-width: 480px) {
+  .navbar .brand small {
+    display: block;
+  }
+}
+
+/* Light theme improvements */
+:root[data-theme="light"] .kpi-card {
+  border: 1px solid rgba(184,146,63,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+:root[data-theme="light"] .sidebar {
+  background: #FFF;
+  border-color: rgba(184,146,63,0.15);
+}
+:root[data-theme="light"] .sidebar-item.active {
+  background: rgba(184,146,63,0.08);
+}
+:root[data-theme="light"] table thead {
+  background: rgba(184,146,63,0.06);
+}
+:root[data-theme="light"] .navbar {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+:root[data-theme="light"] .card {
+  border-color: rgba(184,146,63,0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+:root[data-theme="light"] .student-card {
+  background: rgba(184,146,63,0.04);
+  border-color: rgba(184,146,63,0.12);
+}
+:root[data-theme="light"] .student-card.present {
+  background: rgba(39,174,96,0.06);
+}
+:root[data-theme="light"] .form-control {
+  background: #FFF;
+  border-color: rgba(184,146,63,0.2);
+}
+:root[data-theme="light"] .modal {
+  background: #FFF;
+}
+:root[data-theme="light"] .login-box {
+  background: #FFF;
+}
+:root[data-theme="light"] .toast-success { background: #27AE60; }
+:root[data-theme="light"] .toast-error   { background: #E74C3C; }
